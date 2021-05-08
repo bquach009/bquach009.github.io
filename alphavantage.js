@@ -32,7 +32,7 @@
         id("response-message").textContent = "Graph";
         id("chart-btn").disabled = false; // re-enable the button
     } else {
-        let url = ALPHA_BASE_URL + id("ticker").value.toUpperCase() + '&interval=1min&output-size=full&apikey=' + API_KEY;
+        let url = ALPHA_BASE_URL + id("ticker").value.toUpperCase() + '&interval=1min&outputsize=full&apikey=' + API_KEY;
         fetch(url)
         .then(checkStatus)
         .then(response => response.json())
