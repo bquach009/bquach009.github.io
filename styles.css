@@ -1,0 +1,38 @@
+/**
+ * Author: Melissa Hovik
+ * CS101 Spring 2021
+ * CSS for the APOD (Astronomy Picture of the Day from the NASA API) example
+ */
+@import url('https://fonts.googleapis.com/css?family=Montserrat+Alternates');
+
+body, button {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 16pt;
+  text-align: center;
+}
+
+body {
+  width: 80%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#response {
+  border: 2px solid black;
+  border-radius: 5px;
+  min-height: 200px;
+  padding: 10px;
+}
+
+img {
+  max-width: 400px;
+}
+
+.plot-container {
+  display:flex;
+}
+
+.plot-container, .svg-container, .main-svg {
+  width: 100%;
+}
+
