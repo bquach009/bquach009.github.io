@@ -1,6 +1,6 @@
 "use strict";
 (function(){
-  const ALPHA_BASE_URL = "https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=IBM&interval=5min";
+  const ALPHA_BASE_URL ='https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=';
   const API_KEY = "GO0XOM99ELM2L86Q";
 
   /**
@@ -14,7 +14,7 @@
 
   /**
    * Makes the fetch call to Alphavantage API
-   * Upon success, shows the last 100 5 minute intervals of a stock tickers data.
+   * Upon success, shows the last 100 1 minute intervals of a stock tickers data.
    * If an error occurs, displays a message on the page appropriately.
    */
   function fetchStock() {
@@ -32,7 +32,7 @@
         id("response-message").textContent = "Graph";
         id("chart-btn").disabled = false; // re-enable the button
     } else {
-        let url = 'https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=' + id("ticker").value.toUpperCase() + '&interval=5min&apikey=' + API_KEY;
+        let url = ALPHA_BASE_URL + id("ticker").value.toUpperCase() + '&interval=1min&output-size=full&apikey=' + API_KEY;
         fetch(url)
         .then(checkStatus)
         .then(response => response.json())
@@ -62,10 +62,10 @@
     id("response").appendChild(graph);
 
     // Collect Data
-    let x_data =  Object.keys(stockJSON["Time Series (5min)"]);
+    let x_data =  Object.keys(stockJSON["Time Series (1min)"]);
     let y_data = [];
     for (let key of x_data) {
-        y_data.push(parseFloat(stockJSON["Time Series (5min)"][key]["4. close"]));
+        y_data.push(parseFloat(stockJSON["Time Series (1min)"][key]["4. close"]));
     }
 
     // Format data for Plotly
