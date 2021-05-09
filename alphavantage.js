@@ -87,6 +87,11 @@
 
     let companyName = document.createElement("h2");
     companyName.textContent = overviewJSON["Name"];
+    if (companyName.textContent == "") {
+      let msg = document.createElement("p");
+      msg.textContent = "Could not get company information!";
+      id("error-msg").appendChild(msg);
+    }
 
     let companyDesc = document.createElement("p");
     companyDesc.textContent = overviewJSON["Description"];
@@ -235,7 +240,7 @@
       title: "RSI Strength Indicator Chart"
     }
     Plotly.newPlot('rsiGraph', data, layout, graphProp);
-    
+
     //re-enable button
     id("chart-btn").disabled = false;
   }

@@ -9,6 +9,7 @@ body, button {
   font-family: 'Montserrat', sans-serif;
   font-size: 16pt;
   text-align: center;
+  background-color: #b8cfc9; /* Light Gray */
 }
 
 body {
@@ -34,6 +35,10 @@ img {
 
 .plot-container, .svg-container, .main-svg {
   width: 100%;
+}
+
+main > div, #chart-btn {
+  background-color: white;
 }
 
 .good {
