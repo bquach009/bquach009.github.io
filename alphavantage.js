@@ -44,7 +44,7 @@
         let msg = "Please choose a ticker first.";
         response.textContent = msg;
         id("response").appendChild(response);
-        id("response-message").textContent = "Graph";
+        id("response-message").textContent = "Daily Closing Price";
         id("rsi-message").textContent = "RSI Indicator";
         id("chart-btn").disabled = false; // re-enable the button
     } else {
@@ -67,7 +67,7 @@
         
         // Fetches the RSI graph
         url = ALPHA_BASE_URL + RSI_EP + id("ticker").value.toUpperCase().trim(); 
-        url += '&interval=daily&time_period=10&series_type=close&apikey=' + API_KEY;
+        url += '&interval=daily&time_period=14&series_type=close&apikey=' + API_KEY;
         fetch(url)
         .then(checkStatus)
         .then(response => response.json())
@@ -235,7 +235,7 @@
       title: "RSI Strength Indicator Chart"
     }
     Plotly.newPlot('rsiGraph', data, layout, graphProp);
-
+    
     //re-enable button
     id("chart-btn").disabled = false;
   }
@@ -276,7 +276,7 @@
               "Please check the ticker again or try again later.";
     response.textContent = msg;
     id("error-msg").appendChild(response);
-    id("response-message").textContent = "Graph";
+    id("response-message").textContent = "Daily Closing Price";
     id("rsi-message").textContent = "RSI Indicator";
     id("chart-btn").disabled = false; // re-enable the button
   }
