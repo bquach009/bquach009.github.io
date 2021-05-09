@@ -5,22 +5,25 @@
 <!DOCTYPE html>
 <html>
     <head>
-      <title>Intraday Stock Pricing</title>
+      <title>Daily Stock Pricing</title>
       <link href="styles.css" rel="stylesheet" />
       <script src="plotly-latest.min.js"></script>
       <script defer src="alphavantage.js"></script>
     </head>
     <body>
       <header>
-        <h1>Intraday Stock Pricing</h1>
+        <h1>Daily Stock Pricing</h1>
       </header>
       <main>
         <p>
           <label>Stock Ticker: <input type="text" id="ticker"></label>
           <button id="chart-btn">Plot Chart</button>
         </p>
+        <section id="overview"></section>
         <h2 id="response-message">Graph</h2>
         <div id="response"></div>
+        <h2 id="rsi-message">RSI Indicator</h2>
+        <div id="rsi-response"></div>
       </main>
       <footer>
         <p>Data from the <a href="https://www.alphavantage.co/">Alphavantage API</a>. Times displayed in US/Eastern. </p>

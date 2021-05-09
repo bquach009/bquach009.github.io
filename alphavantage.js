@@ -1,7 +1,19 @@
 "use strict";
 (function(){
-  const ALPHA_BASE_URL ='https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=';
+  const ALPHA_BASE_URL ='https://www.alphavantage.co/query?function=';
   const API_KEY = "GO0XOM99ELM2L86Q";
+  // Price Indicator 
+  const PRICE_EP = 'TIME_SERIES_DAILY_ADJUSTED&symbol=';
+  // RSI Indicator
+  const RSI_EP = 'RSI&symbol=';
+  // Overview EP
+  const OVERVIEW_EP = "OVERVIEW&symbol="
+  // Graph Layout Properties
+  const graphProp = {
+    staticPlot: true
+  }
+  // Caps the number of datapoints to use.
+  const numDataPoints = 150;
 
   /**
    * Sets up the button listener to fetch data from the Alphavantage
@@ -14,71 +26,163 @@
 
   /**
    * Makes the fetch call to Alphavantage API
-   * Upon success, shows the last 100 1 minute intervals of a stock tickers data.
+   * Upon success, shows daily stock price data and RSI strength indicators.
    * If an error occurs, displays a message on the page appropriately.
    */
   function fetchStock() {
     // display loading text and disable button while ajax call is loading
     id("response-message").textContent = "Graphing ...";
     id("response").innerHTML = "";
+    id("rsi-message").textContent = "Graphing ...";
+    id("rsi-response").innerHTML = "";
     id("chart-btn").disabled = true;
 
-    // TODO: Build URL, start fetch call chain
+    // Check for a ticker input
     if (!id("ticker").value) {
         let response = document.createElement("p");
         let msg = "Please choose a ticker first.";
         response.textContent = msg;
         id("response").appendChild(response);
         id("response-message").textContent = "Graph";
+        id("rsi-message").textContent = "RSI Indicator";
         id("chart-btn").disabled = false; // re-enable the button
     } else {
-        let url = ALPHA_BASE_URL + id("ticker").value.toUpperCase() + '&interval=1min&outputsize=full&apikey=' + API_KEY;
+        // Fill in general company info
+        let url = ALPHA_BASE_URL + OVERVIEW_EP + id("ticker").value.toUpperCase() + '&apikey=' + API_KEY;
+        fetch(url)
+        .then(checkStatus)
+        .then(response => response.json())
+        .then(processOverview)
+        .catch(handleRequestError)
+
+        // Add pauses between fetches to prevent errors. 
+        // Fetches the stock price graph, only the most recent 150 days of data.
+        url = ALPHA_BASE_URL + PRICE_EP + id("ticker").value.toUpperCase() + '&outputsize=150&apikey=' + API_KEY;
         fetch(url)
         .then(checkStatus)
         .then(response => response.json())
         .then(processStockData)
         .catch(handleRequestError);
+        
+        // Fetches the RSI graph
+        url = ALPHA_BASE_URL + RSI_EP + id("ticker").value.toUpperCase(); 
+        url += '&interval=daily&time_period=10&series_type=close&apikey=' + API_KEY;
+        fetch(url)
+        .then(checkStatus)
+        .then(response => response.json())
+        .then(processRSIData)
+        .catch(handleRequestError);
     }
+  }
+
+  function processOverview(overviewJSON) {
+    id("overview").innerHTML = "";
+
+    let companyName = document.createElement("h2");
+    companyName.textContent = overviewJSON["Name"];
+
+    let companyDesc = document.createElement("p");
+    companyDesc.textContent = overviewJSON["Description"];
+
+    id("overview").appendChild(companyName);
+    id("overview").appendChild(companyDesc);
   }
 
   /**
    * Processes the response to display Alphavantage information on the page
-   * with text content and the photo of the day. 
+   * with a graph using Plotly library
    * @param {Object} stockJSON - the parsed JSON object that is was returned 
    * from the request.
    */
   function processStockData(stockJSON){
-    //clear response box
-    id("response-message").textContent = "Graph";
-
-    //See sample json response below
-    let title = document.createElement("h2");
-    title.textContent = stockJSON["Meta Data"]["2. Symbol"];
+    // Reset response box
+    id("response-message").textContent = stockJSON["Meta Data"]["2. Symbol"] +  " Stock Price";
 
     let graph = document.createElement("div");
     graph.id = "stockGraph";
 
-    id("response").appendChild(title);
     id("response").appendChild(graph);
 
-    // Collect Data
-    let x_data =  Object.keys(stockJSON["Time Series (1min)"]);
+    // Parse and process time series.
+    let data = prepareTimeSeries(stockJSON);
+
+    let layout = {
+      title: "Closing Price Chart"
+    }
+
+    Plotly.newPlot('stockGraph', data, layout, graphProp);
+
+    //re-enable button
+    id("chart-btn").disabled = false;
+  }
+
+  /**
+   * Parses the json data and produces a data object that it is readily plotable from Plotly
+   * @param {JSON object} data - the parsed JSON object returned from the request to the API
+   * @returns preparedData - In the form of an array [ {x: xData, y: yData, type:"scatter"}] 
+   */
+  function prepareTimeSeries(data) {
+    let x_data =  Object.keys(data["Time Series (Daily)"]);
     let y_data = [];
     for (let key of x_data) {
-        y_data.push(parseFloat(stockJSON["Time Series (1min)"][key]["4. close"]));
+        y_data.push(parseFloat(data["Time Series (Daily)"][key]["4. close"]));
     }
 
     // Format data for Plotly
-    let data = [
+    let preparedData = [
         {
             x: x_data, y: y_data, type:"scatter"
         }
     ];
 
-    Plotly.newPlot('stockGraph', data);
+    return preparedData
+  }
+
+  /**
+   * Prepares the response from RSI API endpoint and graphs it using Plotly
+   * @param {JSON object} rsiJSON - the parsed JSON object returned from the request to the API
+   */
+  function processRSIData(rsiJSON) {
+    // Reset response box
+    id("rsi-message").textContent = rsiJSON["Meta Data"]["1: Symbol"] + " RSI Indicator";
+
+    let graph = document.createElement("div");
+    graph.id = "rsiGraph";
+
+    id("rsi-response").appendChild(graph);
+
+    // Parse and process time series.
+    let data = prepareRSITimeSeries(rsiJSON);
+
+    let layout = {
+      title: "RSI Strength Indicator Chart"
+    }
+    Plotly.newPlot('rsiGraph', data, layout, graphProp);
 
     //re-enable button
     id("chart-btn").disabled = false;
+  }
+
+  /**
+   * Parses the RSI json data and produces a data object that it is readily plotable from Plotly
+   * @param {JSON object} data - the parsed JSON object returned from the request to the API
+   * @returns preparedData - In the form of an array [ {x: xData, y: yData, type:"scatter"}] 
+   */
+  function prepareRSITimeSeries(data) {
+    let x_data =  Object.keys(data["Technical Analysis: RSI"]);
+    let y_data = [];
+    for (let key of x_data) {
+        y_data.push(parseFloat(data["Technical Analysis: RSI"][key]["RSI"]));
+    }
+
+    // Format data for Plotly
+    let preparedData = [
+        {
+            x: x_data.slice(0, numDataPoints), y: y_data.slice(0, numDataPoints), type:"scatter"
+        }
+    ];
+
+    return preparedData
   }
 
   /**
@@ -94,8 +198,9 @@
     let msg = "There was an error requesting data from the Alphavantage service. " + 
               "Please check the ticker again or try again later.";
     response.textContent = msg;
-    id("response").appendChild(response);
+    id("overview").appendChild(response);
     id("response-message").textContent = "Graph";
+    id("rsi-message").textContent = "RSI Indicator";
     id("chart-btn").disabled = false; // re-enable the button
   }
 
