@@ -49,7 +49,7 @@
         id("chart-btn").disabled = false; // re-enable the button
     } else {
         // Fill in general company info
-        let url = ALPHA_BASE_URL + OVERVIEW_EP + id("ticker").value.toUpperCase() + '&apikey=' + API_KEY;
+        let url = ALPHA_BASE_URL + OVERVIEW_EP + id("ticker").value.toUpperCase().trim() + '&apikey=' + API_KEY;
         fetch(url)
         .then(checkStatus)
         .then(response => response.json())
@@ -58,7 +58,7 @@
 
         // Add pauses between fetches to prevent errors. 
         // Fetches the stock price graph, only the most recent 150 days of data.
-        url = ALPHA_BASE_URL + PRICE_EP + id("ticker").value.toUpperCase() + '&outputsize=150&apikey=' + API_KEY;
+        url = ALPHA_BASE_URL + PRICE_EP + id("ticker").value.toUpperCase().trim() + '&outputsize=150&apikey=' + API_KEY;
         fetch(url)
         .then(checkStatus)
         .then(response => response.json())
@@ -66,7 +66,7 @@
         .catch(handleRequestError);
         
         // Fetches the RSI graph
-        url = ALPHA_BASE_URL + RSI_EP + id("ticker").value.toUpperCase(); 
+        url = ALPHA_BASE_URL + RSI_EP + id("ticker").value.toUpperCase().trim(); 
         url += '&interval=daily&time_period=10&series_type=close&apikey=' + API_KEY;
         fetch(url)
         .then(checkStatus)
