@@ -36,6 +36,7 @@
     id("rsi-message").textContent = "Graphing ...";
     id("rsi-response").innerHTML = "";
     id("chart-btn").disabled = true;
+    id("error-msg").innerHTML = "";
 
     // Check for a ticker input
     if (!id("ticker").value) {
@@ -75,6 +76,12 @@
     }
   }
 
+  /**
+   * Processes the overview data returned from alphavantage API. Upon success, 
+   * this function displays the company name and description. Some tickers like 
+   * electronically traded funds will not display.
+   * @param {JSON object} overviewJSON - returned from alphavantage overview endpoint
+   */
   function processOverview(overviewJSON) {
     id("overview").innerHTML = "";
 
@@ -90,7 +97,8 @@
 
   /**
    * Processes the response to display Alphavantage information on the page
-   * with a graph using Plotly library
+   * with a graph using Plotly library. Also initiates some basic analysis
+   * to display to the user.
    * @param {Object} stockJSON - the parsed JSON object that is was returned 
    * from the request.
    */
@@ -112,6 +120,29 @@
 
     Plotly.newPlot('stockGraph', data, layout, graphProp);
 
+    // Predict next day
+    let pred = predictNextDay(data);
+    let pricePredict = document.createElement("p");
+    pricePredict.textContent = "AR(1) Predicted Expected Price for Next Trading Day: $"
+    pricePredict.textContent += Math.round(pred * 100) / 100;
+    id("response").appendChild(pricePredict)
+    // Calculate expected return
+    let returnMsg = document.createElement("p");
+    returnMsg.textContent = "Expected Next Trading Day Return: "
+    // Converts into single decimal percentage
+    let idx = data[0].y.length - 1;
+    let pct_return = Math.round((pred - (data[0].y[idx])) / data[0].y[idx] * 1000) / 10
+    let dailyReturn = document.createElement("span");
+    dailyReturn.textContent += pct_return;
+    dailyReturn.textContent += "%";
+    // These classes are used to color the output based on the result.
+    if (pct_return > 0) {
+      dailyReturn.classList.add("good");
+    } else {
+      dailyReturn.classList.add("bad");
+    }
+    returnMsg.appendChild(dailyReturn)
+    id("response").appendChild(returnMsg)
     //re-enable button
     id("chart-btn").disabled = false;
   }
@@ -136,6 +167,52 @@
     ];
 
     return preparedData
+  }
+
+  /**
+   * Utilizes ordinary least squares regression on price at time t to predict
+   * price at time t + 1. Uses the model to predict the expected price 
+   * the next day using autoregression. E[P_t+1] = a + B * P_t.
+   * @param {Data Object} data - same data object that's passed to Plotly and returned from
+   * prepareTimeSeries
+   * @returns predicted price for the next day. 
+   */
+  function predictNextDay(data) {
+    // Reverse data first since the data comes from most recent to oldest
+    let trainData = data[0].y;
+    trainData.reverse();
+    // Predicting time t from time t-1
+    let x = trainData.slice(0, -1);
+    let y = trainData.slice(1);
+    // Get Average values of each
+    let avg_x = avg(x);
+    let avg_y = avg(y);
+    // Calculate coefficient B
+    let B_num = 0;
+    let B_denom = 0;
+    for (let i = 0; i < x.length; i++) {
+      B_num += (x[i] - avg_x)*(y[i] - avg_y);
+      B_denom += (x[i] - avg_x) ** 2;
+    }
+    // Calculate the intercept alpha 
+    let alpha = avg_y - B_num / B_denom * avg_x;
+    console.log(alpha);
+    console.log(B_num / B_denom);
+    // Return prediction for next day
+    return alpha + B_num / B_denom * trainData[trainData.length - 1];
+  }
+
+  /**
+   * Calculates the average of an array of numbers
+   * @param {Float array} arr - array of floats to calculate average
+   * @returns average of the values of the array
+   */
+  function avg(arr) {
+    let mean = 0;
+    for (let i = 0; i < arr.length; i++) {
+      mean += arr[i];
+    }
+    return mean / arr.length;
   }
 
   /**
@@ -195,10 +272,10 @@
   function handleRequestError(err) {
     // ajax call failed! alert, place text and re-enable the button
     let response = document.createElement("p");
-    let msg = "There was an error requesting data from the Alphavantage service. " + 
+    let msg = "There was an error requesting some data from the Alphavantage service. " + 
               "Please check the ticker again or try again later.";
     response.textContent = msg;
-    id("overview").appendChild(response);
+    id("error-msg").appendChild(response);
     id("response-message").textContent = "Graph";
     id("rsi-message").textContent = "RSI Indicator";
     id("chart-btn").disabled = false; // re-enable the button

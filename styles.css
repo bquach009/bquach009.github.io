@@ -36,3 +36,10 @@ img {
   width: 100%;
 }
 
+.good {
+  color: green;
+}
+
+.bad {
+  color: red;
+}
