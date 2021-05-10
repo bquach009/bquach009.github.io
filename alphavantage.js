@@ -278,7 +278,8 @@
     // ajax call failed! alert, place text and re-enable the button
     let response = document.createElement("p");
     let msg = "There was an error requesting some data from the Alphavantage service. " + 
-              "Please check the ticker again or try again later.";
+              "Please check the ticker again or try again later." +
+              "Warning, the free API limits 5 requests per minute (each page load requires 3).";
     response.textContent = msg;
     id("error-msg").appendChild(response);
     id("response-message").textContent = "Daily Closing Price";
