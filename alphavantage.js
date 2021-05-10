@@ -49,12 +49,17 @@
         id("chart-btn").disabled = false; // re-enable the button
     } else {
         // Fill in general company info
-        let url = ALPHA_BASE_URL + OVERVIEW_EP + id("ticker").value.toUpperCase().trim() + '&apikey=' + API_KEY;
-        fetch(url)
-        .then(checkStatus)
-        .then(response => response.json())
-        .then(processOverview)
-        .catch(handleRequestError)
+        let url = "";
+        if (qs("input[name='overview']:checked")) {
+          url = ALPHA_BASE_URL + OVERVIEW_EP + id("ticker").value.toUpperCase().trim() + '&apikey=' + API_KEY;
+          fetch(url)
+          .then(checkStatus)
+          .then(response => response.json())
+          .then(processOverview)
+          .catch(handleRequestError)
+        } else {
+          id("overview").innerHTML = "";
+        }
 
         // Add pauses between fetches to prevent errors. 
         // Fetches the stock price graph, only the most recent 150 days of data.
@@ -279,7 +284,8 @@
     let response = document.createElement("p");
     let msg = "There was an error requesting some data from the Alphavantage service. " + 
               "Please check the ticker again or try again later." +
-              "Warning, the free API limits 5 requests per minute (each page load requires 3).";
+              "Warning, the free API limits 5 requests per minute" +
+              " (each page load requires 3 with company description).";
     response.textContent = msg;
     id("error-msg").appendChild(response);
     id("response-message").textContent = "Daily Closing Price";
@@ -298,6 +304,15 @@
    */
   function id(idName) {
     return document.getElementById(idName);
+  }
+
+  /**
+   * Returns the first element that matches the given CSS selector.
+   * @param {string} selector - CSS query selector string.
+   * @returns {object} first element matching the selector in the DOM tree (null if none)
+   */
+  function qs(selector) {
+    return document.querySelector(selector);
   }
 
   /**
