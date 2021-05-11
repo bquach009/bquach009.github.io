@@ -15,6 +15,10 @@
   // Caps the number of datapoints to use.
   const numDataPoints = 150;
 
+  // Independent fetches
+  let priceData;
+  let rsiData;
+
   /**
    * Sets up the button listener to fetch data from the Alphavantage
    * and then uses the data to plot intraday trading of the past data points.
@@ -63,7 +67,7 @@
 
         // Add pauses between fetches to prevent errors. 
         // Fetches the stock price graph, only the most recent 150 days of data.
-        url = ALPHA_BASE_URL + PRICE_EP + id("ticker").value.toUpperCase().trim() + '&outputsize=150&apikey=' + API_KEY;
+        url = ALPHA_BASE_URL + PRICE_EP + id("ticker").value.toUpperCase().trim() + '&outputsize=253&apikey=' + API_KEY;
         fetch(url)
         .then(checkStatus)
         .then(response => response.json())
@@ -78,6 +82,8 @@
         .then(response => response.json())
         .then(processRSIData)
         .catch(handleRequestError);
+
+        setTimeout(combineData, 3000);
     }
   }
 
@@ -123,6 +129,7 @@
 
     // Parse and process time series.
     let data = prepareTimeSeries(stockJSON);
+    priceData = data[0];
 
     let layout = {
       title: "Closing Price Chart"
@@ -194,22 +201,18 @@
     // Predicting time t from time t-1
     let x = trainData.slice(0, -1);
     let y = trainData.slice(1);
-    // Get Average values of each
-    let avg_x = avg(x);
-    let avg_y = avg(y);
-    // Calculate coefficient B
-    let B_num = 0;
-    let B_denom = 0;
+    
+    // Use math library
+    let matX = [];
     for (let i = 0; i < x.length; i++) {
-      B_num += (x[i] - avg_x)*(y[i] - avg_y);
-      B_denom += (x[i] - avg_x) ** 2;
+      matX.push([1, x[i]]);
     }
-    // Calculate the intercept alpha 
-    let alpha = avg_y - B_num / B_denom * avg_x;
-    console.log(alpha);
-    console.log(B_num / B_denom);
+    x = math.matrix(matX);
+    y = math.matrix(y);
+    let B = math.multiply(math.multiply(math.inv(math.multiply(math.transpose(x), x)), math.transpose(x)), y);
+
     // Return prediction for next day
-    return alpha + B_num / B_denom * trainData[trainData.length - 1];
+    return math.dot(B, [1, trainData[trainData.length - 1]]);
   }
 
   /**
@@ -240,6 +243,7 @@
 
     // Parse and process time series.
     let data = prepareRSITimeSeries(rsiJSON);
+    rsiData = data[0];
 
     let layout = {
       title: "RSI Strength Indicator Chart"
@@ -272,6 +276,48 @@
     return preparedData
   }
 
+  function combineData() {
+    let dates = priceData.x.filter(value => rsiData.x.includes(value));
+    dates.reverse();
+    priceData.y.reverse();
+    // Use math library
+    let matX = [];
+    let y = [];
+    for (let i = 0; i < dates.length - 1; i++) {
+      let priceX = priceData.x.indexOf(dates[i]);
+      let rsiX = rsiData.x.indexOf(dates[i]);
+      let target = priceData.x.indexOf(dates[i + 1]);
+      matX.push([1, priceData.y[priceX], rsiData.y[rsiX]]);
+      y.push(priceData.y[target]);
+    }
+    let x = math.matrix(matX);
+    y = math.matrix(y);
+    let B = math.multiply(math.multiply(math.inv(math.multiply(math.transpose(x), x)), math.transpose(x)), y);
+
+    // Return prediction for next day
+    let pred = math.dot(B, [1, priceData.y[0], rsiData.y[0]]);
+
+    let msg = document.createElement("p");
+    msg.textContent = "OLS Price and RSI Combined Expected Price for Next Trading Day: $" + Math.round(pred * 100) / 100;
+    id("response").appendChild(msg);
+
+    let returnMsg = document.createElement("p");
+    returnMsg.textContent = "Expected Next Trading Day Return: "
+    // Converts into single decimal percentage
+    let pct_return = Math.round((pred - priceData.y[0]) / priceData.y[0] * 1000) / 10;
+    let dailyReturn = document.createElement("span");
+    dailyReturn.textContent += pct_return;
+    dailyReturn.textContent += "%";
+    // These classes are used to color the output based on the result.
+    if (pct_return > 0) {
+      dailyReturn.classList.add("good");
+    } else {
+      dailyReturn.classList.add("bad");
+    }
+    returnMsg.appendChild(dailyReturn)
+    id("response").appendChild(returnMsg)
+  }
+
   /**
    * This function is called when an error occurs in the fetch call chain 
    * (e.g. the request returns a non-200 error code, such as when the Alphavantage 
@@ -280,6 +326,7 @@
    * @param {Error} err - the error details of the request.
    */
   function handleRequestError(err) {
+    console.log(err);
     // ajax call failed! alert, place text and re-enable the button
     let response = document.createElement("p");
     let msg = "There was an error requesting some data from the Alphavantage service. " + 
